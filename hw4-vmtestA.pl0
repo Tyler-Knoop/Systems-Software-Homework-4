@@ -1,0 +1,15 @@
+# $Id: hw4-vmtestA.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+const achar = 97;
+var c;
+var i;
+begin
+  i := 0;
+  while i < 10
+  do
+    begin
+      c := achar + i;
+      # writes 98, 99, 100, 101, 102, 103, 104, 105, 106, 107
+      write c+1;
+      i := i+1
+    end
+end.

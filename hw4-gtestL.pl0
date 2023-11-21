@@ -1,0 +1,20 @@
+# $Id: hw4-gtestL.pl0,v 1.1 2023/11/15 02:55:24 leavens Exp $
+const two = 2;
+const three = 3;
+var i;
+begin
+  write three;  # writes 3
+  i := two * three - (two * three - three * two);
+  while i > (two - two)
+  do begin
+      write i;  # writes 6, then 5, 4, 3, 2, 1
+      i := i - (three - two + 0 * 5021 * 6414)
+    end;
+  if i < 0
+  then if i > 0
+       then write 0
+       else write 0
+  else if i = 0
+       then write (three - two) # writes 1
+       else skip
+end.

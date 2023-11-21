@@ -1,0 +1,10 @@
+# $Id: hw4-gtest8.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+const aConst = 77;
+var aVar, anotherVar;
+begin
+   write aConst;             # writes 77
+   aVar := aConst;
+   write aVar;               # writes 77
+   anotherVar := aConst + 1;
+   write anotherVar          # writes 78
+end.

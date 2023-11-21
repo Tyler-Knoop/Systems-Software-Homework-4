@@ -1,0 +1,6 @@
+begin
+  while 0 < 0
+  do
+    write 0;
+  write 1    # writes 1
+end.

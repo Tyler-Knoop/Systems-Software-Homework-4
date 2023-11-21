@@ -1,0 +1,8 @@
+# $Id: hw4-gtest6.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+const three = 3;
+var four;
+begin
+  four := 4;
+  write three;  # writes 3
+  write four    # writes 4
+end.

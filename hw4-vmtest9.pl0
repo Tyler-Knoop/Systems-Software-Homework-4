@@ -1,0 +1,23 @@
+# $Id: hw4-vmtest9.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+const q = 7;
+var x, y, z;
+begin
+   x := 86;
+   write x;     # writes 86
+   y := 99;
+   write y;     # writes 99
+   z := 1001;
+   write z;     # writes 1001
+   write (x-y); # writes -13
+   if odd (x-y)
+   then
+       begin
+         x := z+1+q;
+	 write x    # writes 1009
+       end
+   else
+      begin
+        y := y-1*z;
+	write y
+      end
+end.

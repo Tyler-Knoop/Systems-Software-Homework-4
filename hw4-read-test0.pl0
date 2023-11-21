@@ -1,0 +1,6 @@
+# $Id: hw4-read-test0.pl0,v 1.1 2023/11/15 05:52:34 leavens Exp $
+var c;
+begin
+  read c;
+  write c
+end.

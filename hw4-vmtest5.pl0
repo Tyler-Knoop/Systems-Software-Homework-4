@@ -1,0 +1,8 @@
+# $Id: hw4-vmtest5.pl0,v 1.5 2023/11/15 05:52:34 leavens Exp $
+var x, y;
+begin
+  y := 33;
+  write y;     # writes 33
+  x := y + 22;
+  write x      # writes 55
+end.

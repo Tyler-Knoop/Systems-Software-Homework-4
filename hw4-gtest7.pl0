@@ -1,0 +1,10 @@
+# $Id: hw4-gtest7.pl0,v 1.1 2023/11/15 02:55:19 leavens Exp $ 
+var x;
+var y;
+begin
+  x := -3;
+  y := 4;
+  write y;
+  y := x;
+  write y
+end.

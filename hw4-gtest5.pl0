@@ -1,0 +1,5 @@
+# $Id: hw4-gtest5.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+begin
+  write 340;  # writes 340
+  write 2     # writes 2
+end.

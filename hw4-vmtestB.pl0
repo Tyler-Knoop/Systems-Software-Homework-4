@@ -1,0 +1,6 @@
+# $Id: hw4-vmtestB.pl0,v 1.1 2023/11/13 05:14:25 leavens Exp $
+const c = 32;
+const five = 5, three = 3;
+var x, y, z;
+var i, j, k;
+skip.

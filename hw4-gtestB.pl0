@@ -1,0 +1,16 @@
+# $Id: hw4-gtestB.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+const zero = 0, one = 1, two = 2;
+const three = 3;
+var v1, v2;
+var v3, v4;
+begin
+   write zero;  # writes 0
+   write one;   # writes 1
+   write two;   # writes 2
+   v1 := one;  
+   write v1;    # writes 1
+   v2 := two / one;
+   write v2;    # writes 2
+   v3 := (two + 1 + 0) / one;
+   write v3     # writes 3
+end.

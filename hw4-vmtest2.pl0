@@ -1,0 +1,6 @@
+# $Id: hw4-vmtest2.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+var x;
+begin
+  x := 5;
+  write x   # writes 5
+end.

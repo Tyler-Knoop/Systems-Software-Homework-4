@@ -1,0 +1,9 @@
+# $Id: hw4-gtestH.pl0,v 1.1 2023/11/15 02:55:23 leavens Exp $
+const t = 3, f = 4;
+const z = 0;
+const two = 2;
+var a;
+var b;
+begin
+  if t = f then write t else write z # writes 0
+end.

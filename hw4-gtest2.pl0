@@ -1,0 +1,4 @@
+# $Id: hw4-gtest2.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+if 3 < 4
+then write 10    # writes 10
+else write 11.

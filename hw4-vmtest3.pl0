@@ -1,0 +1,7 @@
+# $Id: hw4-vmtest3.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+const five = 5;
+var x;
+begin
+  x := five;
+  write x    # writes 5
+end.

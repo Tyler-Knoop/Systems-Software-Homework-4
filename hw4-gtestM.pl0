@@ -1,0 +1,16 @@
+# $Id: hw4-gtestM.pl0,v 1.1 2023/11/15 02:55:24 leavens Exp $
+const seven = 7;
+var x;
+begin
+  write seven;  # writes 7
+  x := seven / ((100 * 100) / (100 * 100));
+  while x > 1
+  do begin
+      write x;  # writes 7, 11, 17, 26, 13, 20, 10, 5, 8, 4, 2
+      if odd x
+      then x := (3 * x + 1) / 2
+      else x := x / 2
+    end;
+  write x + (seven - seven + (6 - (5+1)) * 3402) # writes 1
+end.
+          

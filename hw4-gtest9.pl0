@@ -1,0 +1,4 @@
+# $Id: hw4-gtest9.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+if 0 = 0
+then write 111   # writes 111
+else write 0.

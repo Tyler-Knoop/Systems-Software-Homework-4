@@ -1,0 +1,26 @@
+# $Id: hw4-gtestP.pl0,v 1.1 2023/11/15 03:12:11 leavens Exp $
+const a = 1, b = 3;
+const c = 4, d = 6;
+var aVar, anotherVar;
+var x;
+begin
+    aVar := -1;
+    anotherVar := aVar - 2 - 3/1 - 6*aVar;
+    if anotherVar >= aVar
+    then
+      begin
+        write 32;
+	write 10;
+	anotherVar := anotherVar / 12 + 2;
+	while (anotherVar*2) < 3
+	do
+	   skip;
+	anotherVar := 0
+      end
+    else
+      begin
+        if 3 < 2 then if 7 > 5 then x := 3 else skip
+	         else x := 2 * 3 - 5/4;
+        write x # writes 5
+      end
+end.

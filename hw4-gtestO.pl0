@@ -1,0 +1,12 @@
+# $Id: hw4-gtestO.pl0,v 1.1 2023/11/15 03:12:10 leavens Exp $
+var x;
+begin
+  x := 2-1;
+  if x <= 1
+  then write x   # writes 1
+  else skip;
+  while x <= 10
+  do
+     x := x+1;
+  write x        # writes 11
+end.

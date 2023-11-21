@@ -1,0 +1,11 @@
+# $Id: hw4-vmtest8.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+var x, y;
+begin
+   if 99 < 86
+   then
+      x := +72
+   else
+      y := 1;
+   write x;   # writes 0
+   write y    # writes 1
+end.

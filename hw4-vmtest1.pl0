@@ -1,0 +1,3 @@
+# $Id: hw4-vmtest1.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+write 10. # writes 10
+

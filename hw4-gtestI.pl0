@@ -1,0 +1,29 @@
+# $Id: hw4-gtestI.pl0,v 1.1 2023/11/15 02:55:23 leavens Exp $
+const t = 3, f = 4;
+const z = 0;
+const two = 2;
+var a, b, c;
+var d, e;
+begin
+  write a;  # writes 0
+  a := t + d; 
+  write a;  # writes 3
+  write d;  # writes 0
+  if t = f then write t else write z; # writes 0
+  if t <> f then write f else write two; # writes 4
+  if t < f then write two * two * two + 100  # writes 108
+           else write t * t;
+  if t >= f then write f / f
+            else write two * t + f;  # writes 10 (i.e., 6+4)
+  if odd z then write z else write f - t;  # writes 1
+  if t > f then begin b := two; c := f * f + b; write c; write b end
+           else write two / two;     # writes 1
+  if t <= f then
+              begin
+	        d := t; e := f;
+	        f := d; t := e;
+	        write t;             # writes 4
+		write f              # writes 3
+	      end
+	    else write z + (t-t)/t
+end.

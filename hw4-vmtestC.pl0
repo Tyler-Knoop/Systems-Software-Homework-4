@@ -1,0 +1,23 @@
+# $Id: hw4-vmtestC.pl0,v 1.2 2023/11/15 05:52:34 leavens Exp $
+const c = 48;
+var i, j;
+begin
+  i := 0;
+  write i;    # writes 0
+  j := c;
+  write j;    # writes 48
+  while i <= 1
+  do
+    begin
+      write c+i+4;   # writes 52, 53
+      while j < c+i+4
+      do
+        begin
+          write j;   # writes 48, 49, 50, 51, 52
+	  j := j+1
+        end;
+      i := i+1
+    end;
+  write i   # writes 2
+end.
+      
