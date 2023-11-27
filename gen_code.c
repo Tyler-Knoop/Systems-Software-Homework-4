@@ -4,8 +4,6 @@
 #include "bof.h"
 #include "code.h"
 #include "gen_code.h"
-#include "id_attrs.h"
-#include "id_use.h"
 #include "literal_table.h"
 #include "machine_types.h"
 #include "regname.h"
@@ -21,15 +19,15 @@ void gen_code_initialize()
 void gen_code_program(BOFFILE bf, block_t prog)
 {
     code_seq main_cs = gen_code_block(prog);
-
-    // NOT FINISHED, do not know what to do here
+    
+    //NOT FINISHED, do not know what to do here
 }
 
 code_seq gen_code_block(block_t blk)
 {
     code_seq ret = gen_code_const_decls(blk.const_decls);
     ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
-    gen_code_proc_decls(blk.proc_decls);
+    ret = code_seq_concat(ret, code_seq_proc_decls(blk.proc_decls));
     ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
     return ret;
 }
@@ -37,7 +35,7 @@ code_seq gen_code_block(block_t blk)
 code_seq gen_code_const_decls(const_decls_t cds)
 {
     code_seq ret = code_seq_empty();
-    const_decl_t *cdp = cds.const_decls;
+    const_decl_t* cdp = cds.const_decls;
     while (cdp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_const_decl(*cdp));
@@ -54,7 +52,7 @@ code_seq gen_code_const_decl(const_decl_t cd)
 code_seq gen_code_const_defs(const_defs_t cdfs)
 {
     code_seq ret = code_seq_empty();
-    const_def_t *cdf = cdfs.const_defs;
+    const_def_t* cdf = cdfs.const_defs;
     while (cdf != NULL)
     {
         ret = code_seq_concat(ret, gen_code_const_def(*cdf));
@@ -64,15 +62,15 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
 
 code_seq gen_code_const_def(const_def_t cdf)
 {
-    code_seq ret = gen_code_ident(cdf.ident);
-    ret = code_seq_concat(ret, gen_code_number(cdf.number));
+    code_seq ret = gen_code_ident(cd.ident);
+    ret = code_seq_concat(ret, gen_code_number(cd.number));
     return ret;
 }
 
 code_seq gen_code_var_decls(var_decls_t vds)
 {
     code_seq ret = code_seq_empty();
-    var_decl_t *vdp = vds.var_decls;
+    var_decl_t* vdp = vds.var_decls;
     while (vdp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_var_decl(*vdp));
@@ -89,7 +87,7 @@ code_seq gen_code_var_decl(var_decl_t vd)
 code_seq gen_code_idents(idents_t idents)
 {
     code_seq ret = code_seq_empty();
-    ident_t *idp = idents.idents;
+    ident_t* idp = idents.idents;
     while (idp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_ident(*idp));
@@ -144,7 +142,15 @@ code_seq gen_code_stmt(stmt_t stmt)
 
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
-    
+    code_seq ret = gen_code_expr(*(stmt.expr));
+    assert(stmt.idu != NULL);
+    assert(id_use_get_attrs(stmt.idu) != NULL);
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+    ret = code_seq_concat(ret, code_compute_fp(T9, stmt.idu->levelsOutward));
+    unsigned int offset_count = id_use_get_attrs(stmt.idu)->offset_count;
+    assert(offset_count <= USHRT_MAX);
+    ret = code_seq_add_to_end(ret, code_sw(T9, V0, offset_count));
+    return ret;
 }
 
 code_seq gen_code_call_stmt(call_stmt_t stmt)
@@ -182,7 +188,16 @@ code_seq gen_code_if_stmt(if_stmt_t stmt)
 }
 
 code_seq gen_code_while_stmt(while_stmt_t stmt)
-{
+{   //Not very confident in, needs to be tested
+    code_seq ret = gen_code_condition(stmt.condition);
+    int c_size = code_seq_size(ret);
+    ret = code_seq_concat(ret, code_pop_stack_int_reg(V0));
+    code_seq body = gen_code_stmt(*(stmt->body));
+    int body_len = code_seq_size(body);
+    ret = code_seq_add_to_end(ret, code_beq(0, V0, body_len + 1));
+    ret = code_seq_concat(ret, body);
+    ret = code_seq_add_to_end(ret, code_beq(0, V0, -body_len + c_size + 1));
+    return ret;
 }
 
 code_seq gen_code_read_stmt(read_stmt_t stmt)
@@ -260,7 +275,6 @@ code_seq gen_code_expr(expr_t exp)
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
 }
-
 code_seq gen_code_arith_op(token_t arith_op)
 {
 }
@@ -270,11 +284,10 @@ code_seq gen_code_ident(ident_t id)
     assert(id.idu != NULL);
     code_seq ret = code_compute_fp(T9, id.idu->levelsOutward);
     assert(id_use_get_attrs(id.idu) != NULL);
-    unsigned int offset_count = id_use_get_attrs(id.idu)->offset_count;
+    unsigned int offset_count= id_use_get_attrs(id.idu)->offset_count;
     assert(offset_count <= USHRT_MAX);
-    type_exp_e typ = id_use_get_attrs(id.idu)->type;
     ret = code_seq_add_to_end(ret, code_lw(T9, V0, offset_count));
-    return code_seq_concat(ret, code_push_reg_on_stack(V0, typ));
+    return code_seq_concat(ret, code_push_reg_on_stack(V0));
 }
 
 code_seq gen_code_number(number_t num)
