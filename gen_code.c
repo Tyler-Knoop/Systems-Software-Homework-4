@@ -168,7 +168,7 @@ code_seq gen_code_stmts(stmts_t stmts)
 
 code_seq gen_code_if_stmt(if_stmt_t stmt)
 {
-       // put truth value of stmt.expr in $v0
+    // put truth value of stmt.expr in $v0
     code_seq ret = gen_code_expr(stmt.expr);
     ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
     code_seq cbody = gen_code_stmt(*(stmt.then_stmt));
