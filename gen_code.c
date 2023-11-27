@@ -4,11 +4,12 @@
 #include "bof.h"
 #include "code.h"
 #include "gen_code.h"
+#include "id_attrs.h"
+#include "id_use.h"
 #include "literal_table.h"
 #include "machine_types.h"
 #include "regname.h"
 #include "utilities.h"
-#include "pl0.tab.h"
 
 #define STACK_SPACE 4096
 
@@ -20,15 +21,48 @@ void gen_code_initialize()
 void gen_code_program(BOFFILE bf, block_t prog)
 {
     code_seq main_cs = gen_code_block(prog);
-    
-    //NOT FINISHED, do not know what to do here
+
+    int vars_len_in_bytes = (code_seq_size(main_cs) / 2) * BYTES_PER_WORD;
+    main_cs = code_seq_concat(main_cs, code_save_registers_for_AR());
+    main_cs = code_seq_concat(main_cs, gen_code_stmt(prog.stmt));
+    main_cs = code_seq_concat(main_cs, code_restore_registers_from_AR());
+    main_cs = code_seq_concat(main_cs, code_deallocate_stack_space(vars_len_in_bytes));
+    main_cs = code_seq_add_to_end(main_cs, code_exit());
+
+    BOFHeader bfh;
+    bfh.text_start_address = 0;
+    bfh.text_length = code_seq_size(main_cs) * BYTES_PER_WORD;
+    int dsa = MAX(bfh.text_length, 1024);
+    bfh.data_start_address = dsa;
+    bfh.data_length = literal_table_size() * BYTES_PER_WORD;
+    int sba = dsa + bfh.data_start_address + bfh.data_length + STACK_SPACE;
+    bfh.stack_bottom_addr = sba;
+
+    bof_write_header(bf, bfh);
+
+    while (!code_seq_is_empty(main_cs))
+    {
+        bin_instr_t inst = (code_seq_first(main_cs))->instr;
+        instruction_write_bin_instr(bf, inst);
+        main_cs = code_seq_rest(main_cs);
+    }
+
+    literal_table_start_iteration();
+    while (literal_table_iteration_has_next())
+    {
+        word_type w = literal_table_iteration_next();
+        bof_write_word(bf, w);
+    }
+    literal_table_end_iteration();
+
+    bof_close(bf);
 }
 
 code_seq gen_code_block(block_t blk)
 {
     code_seq ret = gen_code_const_decls(blk.const_decls);
     ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
-    ret = code_seq_concat(ret, code_seq_proc_decls(blk.proc_decls));
+    gen_code_proc_decls(blk.proc_decls);
     ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
     return ret;
 }
@@ -36,7 +70,7 @@ code_seq gen_code_block(block_t blk)
 code_seq gen_code_const_decls(const_decls_t cds)
 {
     code_seq ret = code_seq_empty();
-    const_decl_t* cdp = cds.const_decls;
+    const_decl_t *cdp = cds.const_decls;
     while (cdp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_const_decl(*cdp));
@@ -53,7 +87,7 @@ code_seq gen_code_const_decl(const_decl_t cd)
 code_seq gen_code_const_defs(const_defs_t cdfs)
 {
     code_seq ret = code_seq_empty();
-    const_def_t* cdf = cdfs.const_defs;
+    const_def_t *cdf = cdfs.const_defs;
     while (cdf != NULL)
     {
         ret = code_seq_concat(ret, gen_code_const_def(*cdf));
@@ -63,15 +97,15 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
 
 code_seq gen_code_const_def(const_def_t cdf)
 {
-    code_seq ret = gen_code_ident(cd.ident);
-    ret = code_seq_concat(ret, gen_code_number(cd.number));
+    code_seq ret = gen_code_ident(cdf.ident);
+    ret = code_seq_concat(ret, gen_code_number(cdf.number));
     return ret;
 }
 
 code_seq gen_code_var_decls(var_decls_t vds)
 {
     code_seq ret = code_seq_empty();
-    var_decl_t* vdp = vds.var_decls;
+    var_decl_t *vdp = vds.var_decls;
     while (vdp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_var_decl(*vdp));
@@ -88,7 +122,7 @@ code_seq gen_code_var_decl(var_decl_t vd)
 code_seq gen_code_idents(idents_t idents)
 {
     code_seq ret = code_seq_empty();
-    ident_t* idp = idents.idents;
+    ident_t *idp = idents.idents;
     while (idp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_ident(*idp));
@@ -189,16 +223,7 @@ code_seq gen_code_if_stmt(if_stmt_t stmt)
 }
 
 code_seq gen_code_while_stmt(while_stmt_t stmt)
-{   //Not very confident in, needs to be tested
-    code_seq ret = gen_code_condition(stmt.condition);
-    int c_size = code_seq_size(ret);
-    ret = code_seq_concat(ret, code_pop_stack_int_reg(V0));
-    code_seq body = gen_code_stmt(*(stmt->body));
-    int body_len = code_seq_size(body);
-    ret = code_seq_add_to_end(ret, code_beq(0, V0, body_len + 1));
-    ret = code_seq_concat(ret, body);
-    ret = code_seq_add_to_end(ret, code_beq(0, V0, -body_len + c_size + 1));
-    return ret;
+{
 }
 
 code_seq gen_code_read_stmt(read_stmt_t stmt)
@@ -276,48 +301,23 @@ code_seq gen_code_expr(expr_t exp)
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
 }
+
 code_seq gen_code_arith_op(token_t arith_op)
 {
-     // load top of the stack (the second operand) into AT
-    // Shaun: I removed the second operand. It was initally float_te, I don't see the use for it
-    //        but I think something else is needed since AT is location where we are storing.
-    //        I think a value needs to be stored there.
-    code_seq ret = code_pop_stack_into_reg(AT);
-    // load next element of the stack into V0
-    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
-
-    code_seq do_op = code_seq_empty();
-    switch (arith_op.code) {
-    case plussym:
-	do_op = code_seq_add_to_end(do_op, code_fadd(V0, AT, V0));
-	break;
-    case minussym:
-	do_op = code_seq_add_to_end(do_op, code_fsub(V0, AT, V0));
-	break;
-    case multsym:
-	do_op = code_seq_add_to_end(do_op, code_fmul(V0, AT, V0));
-	break;
-    case divsym:
-	do_op = code_seq_add_to_end(do_op, code_fdiv(V0, AT, V0));
-	break;
-    default:
-	bail_with_error("Unexpected arithOp (%d) in gen_code_arith_op",
-			arith_op.code);
-	break;
-    }
-    do_op = code_seq_concat(do_op, code_push_reg_on_stack(V0));
-    return code_seq_concat(ret, do_op);
 }
 
 code_seq gen_code_ident(ident_t id)
 {
+    /*
     assert(id.idu != NULL);
     code_seq ret = code_compute_fp(T9, id.idu->levelsOutward);
     assert(id_use_get_attrs(id.idu) != NULL);
-    unsigned int offset_count= id_use_get_attrs(id.idu)->offset_count;
+    unsigned int offset_count = id_use_get_attrs(id.idu)->offset_count;
     assert(offset_count <= USHRT_MAX);
+    type_exp_e typ = id_use_get_attrs(id.idu)->type;
     ret = code_seq_add_to_end(ret, code_lw(T9, V0, offset_count));
-    return code_seq_concat(ret, code_push_reg_on_stack(V0));
+    return code_seq_concat(ret, code_push_reg_on_stack(V0, typ));
+    */
 }
 
 code_seq gen_code_number(number_t num)

@@ -49,7 +49,7 @@ bool literal_table_full()
 void literal_table_initialize()
 {
     size = 0;
-    head = NULL;
+    head = iterator = NULL;
 }
 
 // returns the offset of the value found
@@ -61,7 +61,7 @@ int literal_table_find_offset(const char *sought, word_type value)
 // returns true if the value is in that node and false if it is not
 bool literal_table_present(const char *sought, word_type value)
 {
-    if (literal_table_iteration_next() != value)
+    if (iterator->literal != value)
     {
         return false;
     }
@@ -72,6 +72,17 @@ bool literal_table_present(const char *sought, word_type value)
 // returns the offset of the value passed to the function
 unsigned int literal_table_lookup(const char *val_string, word_type value)
 {
+    if (literal_table_empty())
+    {
+        literal_table *new = malloc(sizeof(literal_table));
+        new->literal = value;
+        new->next = NULL;
+        head = new;
+        new->offset = 0;
+        ++size;
+        return new->offset;
+    }
+
     literal_table_start_iteration();
 
     while (literal_table_iteration_has_next()) // iterate over the linked list
@@ -84,23 +95,17 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
         iterator = iterator->next; // go to the next node if the value is not in that node
     }
 
-    // if it gets here the value is not in the literal table, so create a new node and add it to the literal table
+    if (literal_table_present(val_string, value)) // if the value is at that node
+    {
+        return literal_table_find_offset(val_string, value); // return the offset
+    }
+
+    // literal not in table
     literal_table *new = malloc(sizeof(literal_table));
     new->literal = value;
     new->next = NULL;
-
-    if (literal_table_empty())
-    {
-        head = new;
-        new->offset = 0;
-    }
-
-    else
-    {
-        new->offset = iterator->offset + 1;
-        iterator->next = new;
-    }
-
+    new->offset = iterator->offset;
+    iterator->next = new;
     ++size;
 
     literal_table_end_iteration();
@@ -108,16 +113,16 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
     return new->offset; // return the offset of the newly added value in the literal table
 }
 
-// starts the iteration by saving the head
+// starts the iteration by resetting iterator
 void literal_table_start_iteration()
 {
-    head = iterator; // save the head of the linked list
+    iterator = head;
 }
 
-// ends the iteration by resetting the head
+// ends the iteration by making iterator null
 void literal_table_end_iteration()
 {
-    iterator = head; // reset the head of the linked list
+    iterator = NULL;
 }
 
 // returns true if the linked list has a next
