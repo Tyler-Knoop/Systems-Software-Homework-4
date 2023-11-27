@@ -8,6 +8,7 @@
 #include "machine_types.h"
 #include "regname.h"
 #include "utilities.h"
+#include "pl0.tab.h"
 
 #define STACK_SPACE 4096
 
@@ -277,6 +278,35 @@ code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 }
 code_seq gen_code_arith_op(token_t arith_op)
 {
+     // load top of the stack (the second operand) into AT
+    // Shaun: I removed the second operand. It was initally float_te, I don't see the use for it
+    //        but I think something else is needed since AT is location where we are storing.
+    //        I think a value needs to be stored there.
+    code_seq ret = code_pop_stack_into_reg(AT);
+    // load next element of the stack into V0
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+
+    code_seq do_op = code_seq_empty();
+    switch (arith_op.code) {
+    case plussym:
+	do_op = code_seq_add_to_end(do_op, code_fadd(V0, AT, V0));
+	break;
+    case minussym:
+	do_op = code_seq_add_to_end(do_op, code_fsub(V0, AT, V0));
+	break;
+    case multsym:
+	do_op = code_seq_add_to_end(do_op, code_fmul(V0, AT, V0));
+	break;
+    case divsym:
+	do_op = code_seq_add_to_end(do_op, code_fdiv(V0, AT, V0));
+	break;
+    default:
+	bail_with_error("Unexpected arithOp (%d) in gen_code_arith_op",
+			arith_op.code);
+	break;
+    }
+    do_op = code_seq_concat(do_op, code_push_reg_on_stack(V0));
+    return code_seq_concat(ret, do_op);
 }
 
 code_seq gen_code_ident(ident_t id)
