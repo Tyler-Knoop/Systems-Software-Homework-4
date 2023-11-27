@@ -143,6 +143,7 @@ code_seq gen_code_stmt(stmt_t stmt)
 
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
+
 }
 
 code_seq gen_code_call_stmt(call_stmt_t stmt)
@@ -155,10 +156,27 @@ code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 
 code_seq gen_code_stmts(stmts_t stmts)
 {
+    code_seq ret = code_seq_empty();
+    stmt_t *sp = stmts.stmts;
+    while (sp != NULL) 
+    {
+        ret = code_seq_concat(ret, gen_code_stmt(*sp));
+        sp = sp->next;
+    }
+    return ret;
 }
 
 code_seq gen_code_if_stmt(if_stmt_t stmt)
 {
+       // put truth value of stmt.expr in $v0
+    code_seq ret = gen_code_expr(stmt.expr);
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+    code_seq cbody = gen_code_stmt(*(stmt.then_stmt));
+    int cbody_len = code_seq_size(cbody);
+    
+    // skip over body if $v0 contains false
+    ret = code_seq_add_to_end(ret, code_beq(V0, 0, cbody_len));
+    return code_seq_concat(ret, cbody);
 }
 
 code_seq gen_code_while_stmt(while_stmt_t stmt)
@@ -233,6 +251,7 @@ code_seq gen_code_expr(expr_t exp)
 
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
+
 }
 code_seq gen_code_arith_op(token_t arith_op)
 {
