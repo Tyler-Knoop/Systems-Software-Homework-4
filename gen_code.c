@@ -18,38 +18,82 @@ void gen_code_initialize()
 
 void gen_code_program(BOFFILE bf, block_t prog)
 {
+    code_seq main_cs = gen_code_block(prog);
+    
+    //NOT FINISHED, do not know what to do here
 }
 
 code_seq gen_code_block(block_t blk)
 {
+    code_seq ret = gen_code_const_decls(blk.const_decls);
+    ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
+    ret = code_seq_concat(ret, code_seq_proc_decls(blk.proc_decls));
+    ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
+    return ret;
 }
 
 code_seq gen_code_const_decls(const_decls_t cds)
 {
+    code_seq ret = code_seq_empty();
+    const_decl_t* cdp = cds.const_decls;
+    while (cdp != NULL)
+    {
+        ret = code_seq_concat(ret, gen_code_var_decl(*cdp));
+        cdp = cdp->next;
+    }
+    return ret;
 }
 
 code_seq gen_code_const_decl(const_decl_t cd)
 {
+    return gen_code_const_defs(cd.const_defs);
 }
 
 code_seq gen_code_const_defs(const_defs_t cdfs)
 {
+    return gen_code_const_def(cdfs.const_defs);
 }
 
 code_seq gen_code_const_def(const_def_t cdf)
 {
+    code_seq ret = code_seq_empty();
+    const_def_t* cd = cdf;
+    while (cd != NULL)
+    {
+        ret = code_seq_concat(ret, code_seq_singleton(cd.ident));
+        ret = code_seq_concat(ret, gen_code_number(cd.number));
+    }
+    return ret;
 }
 
 code_seq gen_code_var_decls(var_decls_t vds)
 {
+    code_seq ret = code_seq_empty();
+    var_decl_t* vdp = vds.var_decls;
+    while (vdp != NULL)
+    {
+        ret = code_seq_concat(ret, gen_code_var_decl(*vdp));
+        vdp = vdp->next;
+    }
+    return ret;
 }
 
 code_seq gen_code_var_decl(var_decl_t vd)
 {
+    return gen_code_idents(vd.idents);
 }
 
 code_seq gen_code_idents(idents_t idents)
 {
+    code_seq ret = code_seq_empty();
+    ident_t* idp = idents.idents;
+    while (idp != NULL)
+    {
+        code_seq alloc_and_init = code_seq_singleton(code_addi(SP, SP, - BYTES_PER_WORD));
+        ret = code_seq_concat(ret, alloc_and_init);
+        idp = idp->next;
+    }
+    return ret;
 }
 
 void gen_code_proc_decls(proc_decls_t pds)
