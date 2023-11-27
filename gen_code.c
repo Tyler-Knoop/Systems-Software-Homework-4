@@ -144,6 +144,7 @@ code_seq gen_code_stmt(stmt_t stmt)
 
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
+    
 }
 
 code_seq gen_code_call_stmt(call_stmt_t stmt)
