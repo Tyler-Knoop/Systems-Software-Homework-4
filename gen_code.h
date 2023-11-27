@@ -1,4 +1,4 @@
-/* $Id: gen_code.h,v 1.10 2023/11/15 06:43:49 leavens Exp $ */
+/* $Id: gen_code.h,v 1.12 2023/11/27 00:36:33 leavens Exp leavens $ */
 #ifndef _GEN_CODE_H
 #define _GEN_CODE_H
 #include <stdio.h>
@@ -50,10 +50,10 @@ extern code_seq gen_code_var_decl(var_decl_t vd);
 extern code_seq gen_code_idents(idents_t idents);
 
 // (Stub for:) Generate code for the procedure declarations
-extern code_seq gen_code_proc_decls(proc_decls_t pds);
+extern void gen_code_proc_decls(proc_decls_t pds);
 
 // (Stub for:) Generate code for a procedure declaration
-extern code_seq gen_code_proc_decl(proc_decl_t pd);
+extern void gen_code_proc_decl(proc_decl_t pd);
 
 // Generate code for stmt
 extern code_seq gen_code_stmt(stmt_t stmt);
@@ -85,7 +85,6 @@ extern code_seq gen_code_write_stmt(write_stmt_t stmt);
 // Generate code for the skip statment, stmt
 extern code_seq gen_code_skip_stmt(skip_stmt_t stmt);
 
-// Requires: reg != T9
 // Generate code for cond, putting its truth value
 // on top of the runtime stack
 // and using V0 and AT as temporary registers
