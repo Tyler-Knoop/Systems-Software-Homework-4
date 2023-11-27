@@ -51,18 +51,19 @@ code_seq gen_code_const_decl(const_decl_t cd)
 
 code_seq gen_code_const_defs(const_defs_t cdfs)
 {
-    return gen_code_const_def(cdfs.const_defs);
+    code_seq ret = code_seq_empty();
+    const_def_t* cdf = cdfs.const_defs;
+    while (cdf != NULL)
+    {
+        ret = code_seq_concat(ret, gen_code_const_def(*cdf));
+        cdf = cdf->next;
+    }
 }
 
 code_seq gen_code_const_def(const_def_t cdf)
 {
-    code_seq ret = code_seq_empty();
-    const_def_t* cd = cdf;
-    while (cd != NULL)
-    {
-        ret = code_seq_concat(ret, code_seq_singleton(cd.ident));
-        ret = code_seq_concat(ret, gen_code_number(cd.number));
-    }
+    code_seq ret = code_seq_singleton(cd.ident);
+    ret = code_seq_concat(ret, gen_code_number(cd.number));
     return ret;
 }
 
