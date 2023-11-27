@@ -4,6 +4,8 @@
 #include "bof.h"
 #include "code.h"
 #include "gen_code.h"
+#include "id_attrs.h"
+#include "id_use.h"
 #include "literal_table.h"
 #include "machine_types.h"
 #include "regname.h"
@@ -19,15 +21,15 @@ void gen_code_initialize()
 void gen_code_program(BOFFILE bf, block_t prog)
 {
     code_seq main_cs = gen_code_block(prog);
-    
-    //NOT FINISHED, do not know what to do here
+
+    // NOT FINISHED, do not know what to do here
 }
 
 code_seq gen_code_block(block_t blk)
 {
     code_seq ret = gen_code_const_decls(blk.const_decls);
     ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
-    ret = code_seq_concat(ret, code_seq_proc_decls(blk.proc_decls));
+    gen_code_proc_decls(blk.proc_decls);
     ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
     return ret;
 }
@@ -35,10 +37,10 @@ code_seq gen_code_block(block_t blk)
 code_seq gen_code_const_decls(const_decls_t cds)
 {
     code_seq ret = code_seq_empty();
-    const_decl_t* cdp = cds.const_decls;
+    const_decl_t *cdp = cds.const_decls;
     while (cdp != NULL)
     {
-        ret = code_seq_concat(ret, gen_code_var_decl(*cdp));
+        ret = code_seq_concat(ret, gen_code_const_decl(*cdp));
         cdp = cdp->next;
     }
     return ret;
@@ -52,7 +54,7 @@ code_seq gen_code_const_decl(const_decl_t cd)
 code_seq gen_code_const_defs(const_defs_t cdfs)
 {
     code_seq ret = code_seq_empty();
-    const_def_t* cdf = cdfs.const_defs;
+    const_def_t *cdf = cdfs.const_defs;
     while (cdf != NULL)
     {
         ret = code_seq_concat(ret, gen_code_const_def(*cdf));
@@ -62,15 +64,15 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
 
 code_seq gen_code_const_def(const_def_t cdf)
 {
-    code_seq ret = code_seq_singleton(cd.ident);
-    ret = code_seq_concat(ret, gen_code_number(cd.number));
+    code_seq ret = gen_code_ident(cdf.ident);
+    ret = code_seq_concat(ret, gen_code_number(cdf.number));
     return ret;
 }
 
 code_seq gen_code_var_decls(var_decls_t vds)
 {
     code_seq ret = code_seq_empty();
-    var_decl_t* vdp = vds.var_decls;
+    var_decl_t *vdp = vds.var_decls;
     while (vdp != NULL)
     {
         ret = code_seq_concat(ret, gen_code_var_decl(*vdp));
@@ -87,11 +89,10 @@ code_seq gen_code_var_decl(var_decl_t vd)
 code_seq gen_code_idents(idents_t idents)
 {
     code_seq ret = code_seq_empty();
-    ident_t* idp = idents.idents;
+    ident_t *idp = idents.idents;
     while (idp != NULL)
     {
-        code_seq alloc_and_init = code_seq_singleton(code_addi(SP, SP, - BYTES_PER_WORD));
-        ret = code_seq_concat(ret, alloc_and_init);
+        ret = code_seq_concat(ret, gen_code_ident(*idp));
         idp = idp->next;
     }
     return ret;
@@ -143,7 +144,6 @@ code_seq gen_code_stmt(stmt_t stmt)
 
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
-
 }
 
 code_seq gen_code_call_stmt(call_stmt_t stmt)
@@ -152,16 +152,17 @@ code_seq gen_code_call_stmt(call_stmt_t stmt)
 
 code_seq gen_code_begin_stmt(begin_stmt_t stmt)
 {
+    return gen_code_stmts(stmt.stmts);
 }
 
 code_seq gen_code_stmts(stmts_t stmts)
 {
     code_seq ret = code_seq_empty();
-    stmt_t *sp = stmts.stmts;
-    while (sp != NULL) 
+    stmt_t *stmt = stmts.stmts;
+    while (stmt != NULL)
     {
-        ret = code_seq_concat(ret, gen_code_stmt(*sp));
-        sp = sp->next;
+        ret = code_seq_concat(ret, gen_code_stmt(*stmt));
+        stmt = stmt->next;
     }
     return ret;
 }
@@ -173,7 +174,7 @@ code_seq gen_code_if_stmt(if_stmt_t stmt)
     ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
     code_seq cbody = gen_code_stmt(*(stmt.then_stmt));
     int cbody_len = code_seq_size(cbody);
-    
+
     // skip over body if $v0 contains false
     ret = code_seq_add_to_end(ret, code_beq(V0, 0, cbody_len));
     return code_seq_concat(ret, cbody);
@@ -185,6 +186,11 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 
 code_seq gen_code_read_stmt(read_stmt_t stmt)
 {
+    unsigned int offset = stmt.idu->attrs->offset_count;
+    code_seq ret = code_seq_singleton(code_rch());
+    ret = code_seq_add_to_end(ret, code_lw(T9, FP, offset));
+    ret = code_seq_add_to_end(ret, code_sw(T9, V0, offset));
+    return ret;
 }
 
 code_seq gen_code_write_stmt(write_stmt_t stmt)
@@ -196,6 +202,7 @@ code_seq gen_code_write_stmt(write_stmt_t stmt)
 
 code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 {
+    return code_seq_singleton(code_srl(AT, AT, 0));
 }
 
 code_seq gen_code_condition(condition_t cond)
@@ -251,16 +258,28 @@ code_seq gen_code_expr(expr_t exp)
 
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
-
 }
+
 code_seq gen_code_arith_op(token_t arith_op)
 {
 }
 
 code_seq gen_code_ident(ident_t id)
 {
+    assert(id.idu != NULL);
+    code_seq ret = code_compute_fp(T9, id.idu->levelsOutward);
+    assert(id_use_get_attrs(id.idu) != NULL);
+    unsigned int offset_count = id_use_get_attrs(id.idu)->offset_count;
+    assert(offset_count <= USHRT_MAX);
+    type_exp_e typ = id_use_get_attrs(id.idu)->type;
+    ret = code_seq_add_to_end(ret, code_lw(T9, V0, offset_count));
+    return code_seq_concat(ret, code_push_reg_on_stack(V0, typ));
 }
 
 code_seq gen_code_number(number_t num)
 {
+    unsigned int offset = literal_table_lookup(num.text, num.value);
+    code_seq ret = code_lw(GP, V0, offset);
+    ret = code_seq_concat(ret, code_push_reg_on_stack(V0));
+    return ret;
 }
