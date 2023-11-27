@@ -1,8 +1,15 @@
+#include <limits.h>
+#include <stdlib.h>
 #include "ast.h"
+#include "bof.h"
 #include "code.h"
 #include "gen_code.h"
 #include "literal_table.h"
+#include "machine_types.h"
 #include "regname.h"
+#include "utilities.h"
+
+#define STACK_SPACE 4096
 
 void gen_code_initialize()
 {
@@ -45,16 +52,48 @@ code_seq gen_code_idents(idents_t idents)
 {
 }
 
-code_seq gen_code_proc_decls(proc_decls_t pds)
+void gen_code_proc_decls(proc_decls_t pds)
 {
 }
 
-code_seq gen_code_proc_decl(proc_decl_t pd)
+void gen_code_proc_decl(proc_decl_t pd)
 {
 }
 
 code_seq gen_code_stmt(stmt_t stmt)
 {
+    switch (stmt.stmt_kind)
+    {
+    case assign_stmt:
+        return gen_code_assign_stmt(stmt.data.assign_stmt);
+        break;
+    case call_stmt:
+        return gen_code_call_stmt(stmt.data.call_stmt);
+        break;
+    case begin_stmt:
+        return gen_code_begin_stmt(stmt.data.begin_stmt);
+        break;
+    case if_stmt:
+        return gen_code_if_stmt(stmt.data.if_stmt);
+        break;
+    case while_stmt:
+        return gen_code_while_stmt(stmt.data.while_stmt);
+        break;
+    case read_stmt:
+        return gen_code_read_stmt(stmt.data.read_stmt);
+        break;
+    case write_stmt:
+        return gen_code_write_stmt(stmt.data.write_stmt);
+        break;
+    case skip_stmt:
+        return gen_code_skip_stmt(stmt.data.skip_stmt);
+        break;
+    default:
+        bail_with_error("Unknown stmt_kind (%d) in gen_code_stmt", stmt.stmt_kind);
+        break;
+    }
+
+    return code_seq_empty();
 }
 
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
@@ -98,6 +137,20 @@ code_seq gen_code_skip_stmt(skip_stmt_t stmt)
 
 code_seq gen_code_condition(condition_t cond)
 {
+    switch (cond.cond_kind)
+    {
+    case ck_odd:
+        return gen_code_odd_condition(cond.data.odd_cond);
+        break;
+    case ck_rel:
+        return gen_code_rel_op_condition(cond.data.rel_op_cond);
+        break;
+    default:
+        bail_with_error("Unknown cond_kind (%d) in gen_code_condition", cond.cond_kind);
+        break;
+    }
+
+    return code_seq_empty();
 }
 
 code_seq gen_code_odd_condition(odd_condition_t cond)
@@ -114,6 +167,23 @@ code_seq gen_code_rel_op(token_t rel_op)
 
 code_seq gen_code_expr(expr_t exp)
 {
+    switch (exp.expr_kind)
+    {
+    case expr_ident:
+        return gen_code_ident(exp.data.ident);
+        break;
+    case expr_bin:
+        return gen_code_binary_op_expr(exp.data.binary);
+        break;
+    case expr_number:
+        return gen_code_number(exp.data.number);
+        break;
+    default:
+        bail_with_error("Unexpected expr_kind (%d) in gen_code_expr", exp.expr_kind);
+        break;
+    }
+
+    return code_seq_empty();
 }
 
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)

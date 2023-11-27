@@ -3,6 +3,8 @@
 #include "literal_table.h"
 #include "machine_types.h"
 
+#define MAX_SIZE 4096
+
 typedef struct literal_table
 {
     word_type literal;
@@ -24,7 +26,7 @@ unsigned int literal_table_size()
 // returns true if the literal table is empty and false if it is full
 bool literal_table_empty()
 {
-    if (literal_table_size() != 0)
+    if (size != 0)
     {
         return false;
     }
@@ -35,7 +37,7 @@ bool literal_table_empty()
 // returns true if the literal table is full and false if it is not
 bool literal_table_full()
 {
-    if (literal_table_size() < 4096)
+    if (size < MAX_SIZE)
     {
         return false;
     }
@@ -87,7 +89,7 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
     new->literal = value;
     new->next = NULL;
 
-    if (literal_table_empty)
+    if (literal_table_empty())
     {
         head = new;
         new->offset = 0;
@@ -98,6 +100,8 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
         new->offset = iterator->offset + 1;
         iterator->next = new;
     }
+
+    ++size;
 
     literal_table_end_iteration();
 

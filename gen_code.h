@@ -7,7 +7,6 @@
 #include "instruction.h"
 #include "code.h"
 
-
 // Initialize the code generator
 extern void gen_code_initialize();
 
