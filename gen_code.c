@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ast.h"
 #include "bof.h"
 #include "code.h"
@@ -8,6 +9,7 @@
 #include "id_use.h"
 #include "literal_table.h"
 #include "machine_types.h"
+#include "pl0.tab.h"
 #include "regname.h"
 #include "utilities.h"
 
@@ -21,15 +23,10 @@ void gen_code_initialize()
 void gen_code_program(BOFFILE bf, block_t prog)
 {
     code_seq main_cs = gen_code_block(prog);
-
-    int vars_len_in_bytes = (code_seq_size(main_cs) / 2) * BYTES_PER_WORD;
-    main_cs = code_seq_concat(main_cs, code_save_registers_for_AR());
-    main_cs = code_seq_concat(main_cs, gen_code_stmt(prog.stmt));
-    main_cs = code_seq_concat(main_cs, code_restore_registers_from_AR());
-    main_cs = code_seq_concat(main_cs, code_deallocate_stack_space(vars_len_in_bytes));
     main_cs = code_seq_add_to_end(main_cs, code_exit());
 
     BOFHeader bfh;
+    strncpy(bfh.magic, "BOF", 4);
     bfh.text_start_address = 0;
     bfh.text_length = code_seq_size(main_cs) * BYTES_PER_WORD;
     int dsa = MAX(bfh.text_length, 1024);
@@ -213,18 +210,39 @@ code_seq gen_code_stmts(stmts_t stmts)
 code_seq gen_code_if_stmt(if_stmt_t stmt)
 {
     // put truth value of stmt.expr in $v0
-    code_seq ret = gen_code_expr(stmt.expr);
+    code_seq ret = gen_code_condition(stmt.condition);
     ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
-    code_seq cbody = gen_code_stmt(*(stmt.then_stmt));
-    int cbody_len = code_seq_size(cbody);
 
-    // skip over body if $v0 contains false
-    ret = code_seq_add_to_end(ret, code_beq(V0, 0, cbody_len));
-    return code_seq_concat(ret, cbody);
+    // skip then statement if false
+    ret = code_seq_add_to_end(ret, code_beq(0, V0, code_seq_size(gen_code_stmt(*stmt.then_stmt)) + 1));
+
+    ret = code_seq_concat(ret, gen_code_stmt(*stmt.then_stmt));
+
+    // skip else part if true
+    ret = code_seq_add_to_end(ret, code_beq(0, 0, code_seq_size(gen_code_stmt(*stmt.else_stmt))));
+
+    ret = code_seq_concat(ret, gen_code_stmt(*stmt.else_stmt));
+
+    return ret;
 }
 
 code_seq gen_code_while_stmt(while_stmt_t stmt)
 {
+    // put truth value of stmt.expr in $v0
+    code_seq ret = gen_code_condition(stmt.condition);
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+
+    // exit loop if false
+    unsigned int bodySize = code_seq_size(gen_code_stmt(*stmt.body));
+    ret = code_seq_add_to_end(ret, code_beq(0, V0, bodySize + 1));
+
+    ret = code_seq_concat(ret, gen_code_stmt(*stmt.body));
+
+    // go back to condition
+    unsigned int conditionSize = code_seq_size(gen_code_condition(stmt.condition));
+    ret = code_seq_add_to_end(ret, code_beq(0, 0, -(conditionSize + bodySize + 1)));
+
+    return ret;
 }
 
 code_seq gen_code_read_stmt(read_stmt_t stmt)
@@ -301,10 +319,37 @@ code_seq gen_code_expr(expr_t exp)
 
 code_seq gen_code_binary_op_expr(binary_op_expr_t exp)
 {
+    code_seq ret = gen_code_expr(*exp.expr1);
+    ret = code_seq_concat(ret, gen_code_expr(*exp.expr2));
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(T2));
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(T1));
+    ret = code_seq_concat(ret, gen_code_arith_op(exp.arith_op));
+    ret = code_seq_concat(ret, code_push_reg_on_stack(T1));
+    return ret;
 }
 
 code_seq gen_code_arith_op(token_t arith_op)
 {
+    switch (arith_op.code)
+    {
+    case plussym:
+        return code_seq_singleton(code_add(T1, T2, T1));
+        break;
+    case minussym:
+        return code_seq_singleton(code_sub(T1, T2, T1));
+        break;
+    case multsym:
+        return code_seq_singleton(code_mul(T1, T2));
+        break;
+    case divsym:
+        return code_seq_singleton(code_div(T1, T2));
+        break;
+    default:
+        bail_with_error("Unexpected arith_op (%d) in gen_code_arith_op", arith_op.code);
+        break;
+    }
+
+    return code_seq_empty();
 }
 
 code_seq gen_code_ident(ident_t id)
@@ -324,7 +369,7 @@ code_seq gen_code_ident(ident_t id)
 code_seq gen_code_number(number_t num)
 {
     unsigned int offset = literal_table_lookup(num.text, num.value);
-    code_seq ret = code_lw(GP, V0, offset);
+    code_seq ret = code_seq_singleton(code_lw(GP, V0, offset));
     ret = code_seq_concat(ret, code_push_reg_on_stack(V0));
     return ret;
 }
