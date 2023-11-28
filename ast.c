@@ -1,4 +1,4 @@
-/* $Id: ast.c,v 1.10 2023/11/13 05:13:44 leavens Exp $ */
+/* $Id: ast.c,v 1.13 2023/11/27 20:13:36 leavens Exp $ */
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -6,6 +6,9 @@
 #include "ast.h"
 #include "id_use.h"
 #include "lexer.h"
+
+// apparently strdup is not declared in <string.h>
+extern char *strdup(const char *s);
 
 // Return the file location from an AST
 file_location *ast_file_loc(AST t) {
@@ -539,10 +542,15 @@ expr_t ast_expr_binary_op(binary_op_expr_t e)
 // Return an expression AST for an signed number
 expr_t ast_expr_negated_number(token_t sign, number_t number)
 {
+    char buf[BUFSIZ];
     expr_t ret;
     ret.file_loc = file_location_copy(sign.file_loc);
     ret.expr_kind = expr_number;
     ret.data.number = number;
+    // add the minus sign to the text, so it gets in the literal table properly
+    strcat(buf, "-");
+    strncat(buf, number.text, BUFSIZ-1);
+    ret.data.number.text = strdup(buf);
     // negate the value
     ret.data.number.value = - ret.data.number.value;
     return ret;

@@ -1,4 +1,4 @@
-/* $Id: id_attrs.c,v 1.8 2023/11/13 12:51:49 leavens Exp $ */
+/* $Id: id_attrs.c,v 1.10 2023/11/17 21:56:45 leavens Exp $ */
 // Attributes of identifiers in the symbol table
 #include <stdlib.h>
 #include <stddef.h>
@@ -22,6 +22,22 @@ id_attrs *id_attrs_create(file_location floc, id_kind k,
     ret->offset_count = ofst_cnt;
     return ret;
 }
+
+// Return a freshly allocated id_attrs struct for a procedure
+// declared at floc.
+// If there is no space, bail with an error message,
+// so this should never return NULL.
+extern id_attrs *id_attrs_proc_create(file_location floc)
+{
+    id_attrs *ret = (id_attrs *)malloc(sizeof(id_attrs));
+    if (ret == NULL) {
+	bail_with_error("No space to allocate id_attrs!");
+    }
+    ret->file_loc = floc;
+    ret->kind = procedure_idk;
+    return ret;
+}
+
 
 // Return a lowercase version of the kind's name as a string
 // (i.e. if k == variable_idk, return "variable"

@@ -1,4 +1,4 @@
-/* $Id: ast.h,v 1.11 2023/11/13 14:08:44 leavens Exp $ */
+/* $Id: ast.h,v 1.14 2023/11/27 04:25:24 leavens Exp $ */
 #ifndef _AST_H
 #define _AST_H
 #include <stdbool.h>
@@ -106,7 +106,7 @@ typedef enum { assign_stmt, call_stmt, begin_stmt, if_stmt, while_stmt,
 // forward declaration of statement AST struct, for recursions
 struct stmt_s;
 
-// assignStmt ::= ident = expr
+// assignStmt ::= ident := expr
 typedef struct {
     file_location *file_loc;
     const char *name;

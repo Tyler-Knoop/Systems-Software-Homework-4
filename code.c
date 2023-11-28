@@ -1,5 +1,7 @@
-/* $Id: code.c,v 1.18 2023/11/14 06:07:36 leavens Exp $ */
+/* $Id: code.c,v 1.22 2023/11/28 03:17:45 leavens Exp leavens $ */
 #include <stdlib.h>
+#include <limits.h>
+#include <assert.h>
 #include "utilities.h"
 #include "code.h"
 #include "regname.h"
@@ -292,7 +294,8 @@ code *code_jmp(address_type a)
 // Modifies when executed: register $ra, PC
 code *code_jal(address_type a)
 {
-    return create_jump_instr(JAL_O, a);
+    code *ret = create_jump_instr(JAL_O, a);
+    return ret;
 }
 
 
@@ -480,7 +483,8 @@ code_seq code_compute_fp(reg_num_type reg, unsigned int levelsOut)
     return ret;
 }
 
-// Put the top of the runtime stack into register reg
+// Allocate space on the runtime stack and copy the contents of register reg
+// into the newly allocated space on top of the stack.
 // Modifies SP and memory.words[SP-BYTES_PER_WORD] when executed
 code_seq code_push_reg_on_stack(reg_num_type reg)
 {
@@ -489,7 +493,9 @@ code_seq code_push_reg_on_stack(reg_num_type reg)
     return ret;
 }
 
-// Put the top of the runtime stack into register reg
+
+// Copy the value from the top of the runtime stack into register reg
+// and then deallocate the top of the stack.
 // Modifies SP and GPR.words[reg] when executed
 code_seq code_pop_stack_into_reg(reg_num_type reg)
 {
@@ -538,19 +544,19 @@ code_seq code_save_registers_for_AR()
     // push stack_pointer at word index 0 - 1 from current SP
     ret = code_seq_singleton(code_sw(SP, SP, -1));
     // push the frame pointer (dynamic link) at word index -2
-    code_seq_add_to_end(ret, code_sw(SP, FP, -2));
+    ret = code_seq_add_to_end(ret, code_sw(SP, FP, -2));
     // save SP into FP register so FP points to the base of the AR
-    code_seq_add_to_end(ret, code_add(0, SP, FP));
+    ret = code_seq_add_to_end(ret, code_add(0, SP, FP));
     // allocate the space on the stack, by subtracting from SP
-    code_seq_add_to_end(ret, code_addi(SP, SP, - MINIMAL_STACK_ALLOC_BYTES));
+    ret = code_seq_add_to_end(ret, code_addi(SP, SP, - MINIMAL_STACK_ALLOC_BYTES));
     // push the static link at word index -3
-    code_seq_add_to_end(ret, code_sw(FP, A0, -3));
+    ret = code_seq_add_to_end(ret, code_sw(FP, A0, -3));
     // push the return address at word index 3
-    code_seq_add_to_end(ret, code_sw(FP, RA, -4));
+    ret = code_seq_add_to_end(ret, code_sw(FP, RA, -4));
     // save the registers $s0 to $s7 (inclusive)
     int idx = -5;
     for (int rn = S0; rn <= S7; rn++) {
-	code_seq_add_to_end(ret, code_sw(FP, rn, idx--));
+	ret = code_seq_add_to_end(ret, code_sw(FP, rn, idx--));
     }
     return ret;
 }
@@ -569,7 +575,7 @@ code_seq code_restore_registers_from_AR()
     // restore the registers $s0 to $s7 (inclusive)
     int idx = -5;
     for (int rn = S0; rn <= S7; rn++) {
-	code_seq_add_to_end(ret, code_lw(FP, rn, idx--));
+	ret = code_seq_add_to_end(ret, code_lw(FP, rn, idx--));
     }
     // deallocate the space on the stack, by restoring the SP
     code_seq_add_to_end(ret, code_lw(FP, SP, -1));

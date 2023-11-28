@@ -1,4 +1,4 @@
-/* $Id: id_use.c,v 1.8 2023/11/13 12:51:50 leavens Exp $ */
+/* $Id: id_use.c,v 1.9 2023/11/17 21:56:45 leavens Exp $ */
 #include <stdlib.h>
 #include "machine_types.h"
 #include "id_use.h"
@@ -18,9 +18,6 @@ extern id_use *id_use_create(id_attrs *attrs, unsigned int levelsOut)
     }
     ret->attrs = attrs;
     ret->levelsOutward = levelsOut;
-    // If labels are being used,
-    // don't create a label for procedures here!
-    // A label should only be created when creating the proc_decl's AST!
     return ret;
 }
 

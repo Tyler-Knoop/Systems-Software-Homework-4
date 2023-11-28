@@ -1,4 +1,4 @@
-/* $Id: code.h,v 1.15 2023/11/14 05:25:42 leavens Exp $ */
+/* $Id: code.h,v 1.18 2023/11/28 03:17:45 leavens Exp leavens $ */
 #ifndef _CODE_H
 #define _CODE_H
 #include <stdbool.h>
@@ -218,11 +218,13 @@ extern code_seq code_load_static_link(reg_num_type rt, reg_num_type rb);
 // frame pointer for the given number of scopes outward in register reg
 extern code_seq code_compute_fp(reg_num_type reg, unsigned int levelsOut);
 
-// Put the top of the runtime stack into register reg
+// Allocate space on the runtime stack and copy the contents of register reg
+// into the newly allocated space on top of the stack.
 // Modifies SP and memory.words[SP-BYTES_PER_WORD] when executed
 extern code_seq code_push_reg_on_stack(reg_num_type reg);
 
-// Put the top of the runtime stack into register reg
+// Copy the value from the top of the runtime stack into register reg
+// and then deallocate the top of the stack.
 // Modifies SP and GPR.words[reg] when executed
 extern code_seq code_pop_stack_into_reg(reg_num_type reg);
 

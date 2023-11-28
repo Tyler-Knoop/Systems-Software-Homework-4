@@ -1,4 +1,4 @@
-/* $Id: id_attrs.h,v 1.8 2023/11/13 12:51:50 leavens Exp $ */
+/* $Id: id_attrs.h,v 1.10 2023/11/17 21:56:45 leavens Exp $ */
 #ifndef _ID_ATTRS_H
 #define _ID_ATTRS_H
 #include "file_location.h"
@@ -23,6 +23,12 @@ typedef struct {
 // so this should never return NULL.
 extern id_attrs *id_attrs_create(file_location floc, id_kind k,
 				 unsigned int ofst_cnt);
+
+// Return a freshly allocated id_attrs struct for a procedure
+// declared at floc.
+// If there is no space, bail with an error message,
+// so this should never return NULL.
+extern id_attrs *id_attrs_proc_create(file_location floc);
 
 // Return a lowercase version of the kind's name as a string
 // (i.e. if k == variable_idk, return "variable"

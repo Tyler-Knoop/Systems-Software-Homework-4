@@ -93,6 +93,7 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
         ret = code_seq_concat(ret, gen_code_const_def(*cdf));
         cdf = cdf->next;
     }
+    return ret;
 }
 
 code_seq gen_code_const_def(const_def_t cdf)

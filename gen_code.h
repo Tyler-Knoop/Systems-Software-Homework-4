@@ -1,4 +1,4 @@
-/* $Id: gen_code.h,v 1.12 2023/11/27 00:36:33 leavens Exp leavens $ */
+/* $Id: gen_code.h,v 1.12 2023/11/27 00:36:33 leavens Exp $ */
 #ifndef _GEN_CODE_H
 #define _GEN_CODE_H
 #include <stdio.h>
@@ -6,6 +6,7 @@
 #include "bof.h"
 #include "instruction.h"
 #include "code.h"
+
 
 // Initialize the code generator
 extern void gen_code_initialize();
