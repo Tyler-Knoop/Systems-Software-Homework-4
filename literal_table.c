@@ -55,18 +55,37 @@ void literal_table_initialize()
 // returns the offset of the value found
 int literal_table_find_offset(const char *sought, word_type value)
 {
-    return iterator->next->offset;
+    literal_table_start_iteration();
+
+    while (iterator != NULL)
+    {
+        if (iterator->literal == value)
+        {
+            return iterator->offset;
+        }
+
+        iterator = iterator->next;
+    }
+
+    return -1;
 }
 
 // returns true if the value is in that node and false if it is not
 bool literal_table_present(const char *sought, word_type value)
 {
-    if (iterator->literal != value)
+    literal_table_start_iteration();
+
+    while (iterator != NULL)
     {
-        return false;
+        if (iterator->literal == value)
+        {
+            return true;
+        }
+
+        iterator = iterator->next;
     }
 
-    return true;
+    return false;
 }
 
 // returns the offset of the value passed to the function
@@ -83,21 +102,16 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
         return new->offset;
     }
 
-    literal_table_start_iteration();
-
-    while (literal_table_iteration_has_next()) // iterate over the linked list
+    int offset = literal_table_find_offset(val_string, value);
+    if (offset != -1)
     {
-        if (literal_table_present(val_string, value)) // if the value is at that node
-        {
-            return literal_table_find_offset(val_string, value); // return the offset
-        }
-
-        iterator = iterator->next; // go to the next node if the value is not in that node
+        return offset;
     }
 
-    if (literal_table_present(val_string, value)) // if the value is at that node
+    literal_table_start_iteration();
+    while (literal_table_iteration_has_next())
     {
-        return literal_table_find_offset(val_string, value); // return the offset
+        iterator = iterator->next;
     }
 
     // literal not in table
@@ -107,8 +121,6 @@ unsigned int literal_table_lookup(const char *val_string, word_type value)
     new->offset = iterator->offset;
     iterator->next = new;
     ++size;
-
-    literal_table_end_iteration();
 
     return new->offset; // return the offset of the newly added value in the literal table
 }
