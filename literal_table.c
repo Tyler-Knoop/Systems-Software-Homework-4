@@ -1,156 +1,151 @@
-#include <stdbool.h>
+#include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "literal_table.h"
-#include "machine_types.h"
+#include "utilities.h"
 
-#define MAX_SIZE 4096
-
-typedef struct literal_table
+// constant table entries
+typedef struct literal_table_entry_s
 {
-    word_type literal;
+    struct literal_table_entry_s *next;
+    const char *text;
+    word_type value;
     unsigned int offset;
-    struct literal_table *next;
-} literal_table;
+} literal_table_entry_t;
 
-static unsigned int size;
+// the table of constants is a linked list of literal_table_entry_t's
+// with first pointing to the first entry and last to the last one
+static literal_table_entry_t *first;
+static literal_table_entry_t *last;
+static unsigned int next_word_offset;
 
-literal_table *head;     // the head of the literal table linked list, should NOT be iterated over
-literal_table *iterator; // iterator for the literal table
+// Iteration state follows
+static bool iterating;
+static literal_table_entry_t *iteration_next;
 
-// returns the current size of the literal table
+// Return the size (in words/entries) in the literal table
 unsigned int literal_table_size()
 {
-    return size;
+    return next_word_offset;
 }
 
-// returns true if the literal table is empty and false if it is full
+// is the literal_table empty?
 bool literal_table_empty()
 {
-    if (size != 0)
-    {
-        return false;
-    }
-
-    return true;
+    return next_word_offset == 0;
 }
 
-// returns true if the literal table is full and false if it is not
+// is the literal_table full?
 bool literal_table_full()
 {
-    if (size < MAX_SIZE)
-    {
-        return false;
-    }
-
-    return true;
+    return false;
 }
 
-// initializes the literal table values
+// initialize the literal_table
 void literal_table_initialize()
 {
-    size = 0;
-    head = iterator = NULL;
+    first = NULL;
+    last = NULL;
+    next_word_offset = 0;
+    iterating = false;
+    iteration_next = NULL;
 }
 
-// returns the offset of the value found
+// Requires: sought is the print form of value
+// return the offset of sought/value if it is in the table
+// otherwise return -1.
 int literal_table_find_offset(const char *sought, word_type value)
 {
-    literal_table_start_iteration();
-
-    while (iterator != NULL)
+    literal_table_entry_t *entry = first;
+    while (entry != NULL)
     {
-        if (iterator->literal == value)
+        if (strcmp(entry->text, sought) == 0)
         {
-            return iterator->offset;
+            return entry->offset;
         }
-
-        iterator = iterator->next;
+        entry = entry->next;
     }
-
     return -1;
 }
 
-// returns true if the value is in that node and false if it is not
+// Requires: sought is the print form of value
+// Return true just when sought is in the table
 bool literal_table_present(const char *sought, word_type value)
 {
-    literal_table_start_iteration();
-
-    while (iterator != NULL)
-    {
-        if (iterator->literal == value)
-        {
-            return true;
-        }
-
-        iterator = iterator->next;
-    }
-
-    return false;
+    return literal_table_find_offset(sought, value) >= 0;
 }
 
 // returns the offset of the value passed to the function
 unsigned int literal_table_lookup(const char *val_string, word_type value)
 {
-    if (literal_table_empty())
+    int ret = literal_table_find_offset(val_string, value);
+
+    if (ret >= 0) // don't insert if it's already present
     {
-        literal_table *new = malloc(sizeof(literal_table));
-        new->literal = value;
-        new->next = NULL;
-        head = new;
-        new->offset = 0;
-        ++size;
-        return new->offset;
+        return ret;
     }
 
-    int offset = literal_table_find_offset(val_string, value);
-    if (offset != -1)
+    // it's not already present, so insert it
+    literal_table_entry_t *new_entry = (literal_table_entry_t *)malloc(sizeof(literal_table_entry_t));
+    new_entry->text = val_string;
+    new_entry->value = value;
+    new_entry->next = NULL;
+    ret = next_word_offset;
+    new_entry->offset = next_word_offset++;
+    if (new_entry == NULL)
     {
-        return offset;
+        bail_with_error("No space to allocate new literal table entry!");
     }
-
-    literal_table_start_iteration();
-    while (literal_table_iteration_has_next())
+    if (first == NULL)
     {
-        iterator = iterator->next;
+        first = new_entry;
+        last = new_entry;
     }
-
-    // literal not in table
-    literal_table *new = malloc(sizeof(literal_table));
-    new->literal = value;
-    new->next = NULL;
-    new->offset = iterator->offset;
-    iterator->next = new;
-    ++size;
-
-    return new->offset; // return the offset of the newly added value in the literal table
+    else
+    {
+        last->next = new_entry;
+        last = new_entry;
+    }
+    return ret;
 }
 
-// starts the iteration by resetting iterator
+// === iteration helpers ===
+
+// Start an iteration over the literal table
+// which can extract the elements
 void literal_table_start_iteration()
 {
-    iterator = head;
+    if (iterating)
+    {
+        bail_with_error("Attempt to start literal_table iterating when already iterating!");
+    }
+    iterating = true;
+    iteration_next = first;
 }
 
-// ends the iteration by making iterator null
+// End the current iteration over the literal table.
 void literal_table_end_iteration()
 {
-    iterator = NULL;
+    iterating = false;
 }
 
-// returns true if the linked list has a next
+// Is there another float in the literal table?
 bool literal_table_iteration_has_next()
 {
-    if (iterator->next == NULL)
+    bool ret = (iteration_next != NULL);
+    if (!ret)
     {
-        return false;
+        iterating = false;
     }
-
-    return true;
+    return ret;
 }
 
-// returns the next literal in the linked list
+// Return the next float in the literal table
+// and advance the iteration
 word_type literal_table_iteration_next()
 {
-    iterator = iterator->next;
-    return iterator->literal;
+    assert(iteration_next != NULL);
+    word_type ret = iteration_next->value;
+    iteration_next = iteration_next->next;
+    return ret;
 }
