@@ -23,7 +23,6 @@ void gen_code_initialize()
 void gen_code_program(BOFFILE bf, block_t prog)
 {
     code_seq main_cs = gen_code_block(prog);
-    main_cs = code_seq_add_to_end(main_cs, code_exit());
 
     BOFHeader bfh;
     strncpy(bfh.magic, "BOF", 4);
@@ -57,10 +56,10 @@ void gen_code_program(BOFFILE bf, block_t prog)
 
 code_seq gen_code_block(block_t blk)
 {
-    code_seq ret = gen_code_const_decls(blk.const_decls);
-    ret = code_seq_concat(ret, gen_code_var_decls(blk.var_decls));
-    gen_code_proc_decls(blk.proc_decls);
+    code_seq ret = gen_code_var_decls(blk.var_decls);
+    ret = code_seq_concat(ret, gen_code_const_decls(blk.const_decls));
     ret = code_seq_concat(ret, gen_code_stmt(blk.stmt));
+    ret = code_seq_add_to_end(ret, code_exit());
     return ret;
 }
 
@@ -70,7 +69,7 @@ code_seq gen_code_const_decls(const_decls_t cds)
     const_decl_t *cdp = cds.const_decls;
     while (cdp != NULL)
     {
-        ret = code_seq_concat(ret, gen_code_const_decl(*cdp));
+        ret = code_seq_concat(gen_code_const_decl(*cdp), ret);
         cdp = cdp->next;
     }
     return ret;
@@ -87,7 +86,7 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
     const_def_t *cdf = cdfs.const_defs;
     while (cdf != NULL)
     {
-        ret = code_seq_concat(ret, gen_code_const_def(*cdf));
+        ret = code_seq_concat(gen_code_const_def(*cdf), ret);
         cdf = cdf->next;
     }
     return ret;
@@ -95,8 +94,10 @@ code_seq gen_code_const_defs(const_defs_t cdfs)
 
 code_seq gen_code_const_def(const_def_t cdf)
 {
-    code_seq ret = gen_code_ident(cdf.ident);
-    ret = code_seq_concat(ret, gen_code_number(cdf.number));
+    code_seq ret = code_seq_singleton(code_addi(SP, SP, -BYTES_PER_WORD));
+    int offset = literal_table_lookup(cdf.number.text, cdf.number.value);
+    ret = code_seq_add_to_end(ret, code_lw(GP, AT, offset));
+    ret = code_seq_add_to_end(ret, code_sw(SP, AT, 0));
     return ret;
 }
 
@@ -106,7 +107,7 @@ code_seq gen_code_var_decls(var_decls_t vds)
     var_decl_t *vdp = vds.var_decls;
     while (vdp != NULL)
     {
-        ret = code_seq_concat(ret, gen_code_var_decl(*vdp));
+        ret = code_seq_concat(gen_code_var_decl(*vdp), ret);
         vdp = vdp->next;
     }
     return ret;
@@ -123,7 +124,9 @@ code_seq gen_code_idents(idents_t idents)
     ident_t *idp = idents.idents;
     while (idp != NULL)
     {
-        ret = code_seq_concat(ret, gen_code_ident(*idp));
+        code_seq alloc_and_init = code_seq_singleton(code_addi(SP, SP, -BYTES_PER_WORD));
+        alloc_and_init = code_seq_add_to_end(alloc_and_init, code_sw(SP, 0, 0));
+        ret = code_seq_concat(alloc_and_init, ret);
         idp = idp->next;
     }
     return ret;
@@ -176,13 +179,10 @@ code_seq gen_code_stmt(stmt_t stmt)
 code_seq gen_code_assign_stmt(assign_stmt_t stmt)
 {
     code_seq ret = gen_code_expr(*(stmt.expr));
-    assert(stmt.idu != NULL);
-    assert(id_use_get_attrs(stmt.idu) != NULL);
-    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
     ret = code_seq_concat(ret, code_compute_fp(T9, stmt.idu->levelsOutward));
     unsigned int offset_count = id_use_get_attrs(stmt.idu)->offset_count;
-    assert(offset_count <= USHRT_MAX);
-    ret = code_seq_add_to_end(ret, code_sw(T9, V0, offset_count));
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(AT));
+    ret = code_seq_add_to_end(ret, code_sw(T9, AT, offset_count));
     return ret;
 }
 
@@ -247,9 +247,9 @@ code_seq gen_code_while_stmt(while_stmt_t stmt)
 
 code_seq gen_code_read_stmt(read_stmt_t stmt)
 {
-    unsigned int offset = stmt.idu->attrs->offset_count;
     code_seq ret = code_seq_singleton(code_rch());
-    ret = code_seq_add_to_end(ret, code_lw(T9, FP, offset));
+    ret = code_seq_concat(ret, code_compute_fp(T9, stmt.idu->levelsOutward));
+    unsigned int offset = stmt.idu->attrs->offset_count;
     ret = code_seq_add_to_end(ret, code_sw(T9, V0, offset));
     return ret;
 }
@@ -286,62 +286,49 @@ code_seq gen_code_condition(condition_t cond)
 
 code_seq gen_code_odd_condition(odd_condition_t cond)
 {
-    code_seq ret = gen_code_expr(cond.expr);
-    //I think there is something else we might have to do here (maybe)
-        //I am not sure what that is though, if we need anything at all?
-    return ret;
 }
 
 code_seq gen_code_rel_op_condition(rel_op_condition_t cond)
 {
     code_seq ret = gen_code_expr(cond.expr1);
-    ret = code_seq_concat(ret, gen_code_rel_op(cond.rel_op));
     ret = code_seq_concat(ret, gen_code_expr(cond.expr2));
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(AT));
+    ret = code_seq_concat(ret, code_pop_stack_into_reg(V0));
+    ret = code_seq_concat(ret, gen_code_rel_op(cond.rel_op));
+    ret = code_seq_add_to_end(ret, code_add(0, 0, AT));
+    ret = code_seq_add_to_end(ret, code_beq(0, 0, 1));
+    ret = code_seq_add_to_end(ret, code_addi(0, AT, 1));
+    ret = code_seq_concat(ret, code_push_reg_on_stack(AT));
     return ret;
 }
 
 code_seq gen_code_rel_op(token_t rel_op)
 {
-    code_seq ret = code_pop_stack_into_reg(AT);
-    ret = code_seq_concat(ret, code_pop_stack_int_reg(V0));
-    
-    code_seq do_op = code_seq_empty();
-    switch (rel_op.code){
-        case eqsym:
-            do_op = code_seq_singleton(code_beq(v0, AT, 2));
-            break;
-        case neqsym:
-            do_op = code_seq_singleton(code_bne(V0, AT, 2));
-            break;
-        case ltsym:
-            do_op = code_seq_singleton(code_sub(V0, AT, V0));
-            do_op = code_seq_add_to_end(do_op, code_bltz(V0, 2));
-            break;
-        case leqsym:
-            do_op = code_seq_singleton(code_sub(V0, AT, V0));
-            do_op = code_seq_add_to_end(do_op, code_blez(V0, 2));
-            break;
-        case gtsym:
-            do_op = code_seq_singleton(code_sub(V0, AT, V0));
-            do_op = code_seq_add_to_end(do_op, code_bgtz(V0, 2));
-            break;
-        case geqsym:
-            do_op = code_seq_singleton(code_sub(V0, AT, V0));
-            do_op = code_seq_add_to_end(do_op, code_bgez(V0, 2));
-            break;
-        default;
-            bail_with_error("Unknown token (%d) in gen_code_rel_op", rel_op.code);
-            break;
+    switch (rel_op.code)
+    {
+    case eqsym:
+        return code_seq_singleton(code_beq(V0, AT, 2));
+        break;
+    case neqsym:
+        return code_seq_singleton(code_bne(V0, AT, 2));
+        break;
+    case ltsym:
+        return code_seq_add_to_end(code_seq_singleton(code_sub(V0, AT, V0)), code_bltz(V0, 2));
+        break;
+    case leqsym:
+        return code_seq_add_to_end(code_seq_singleton(code_sub(V0, AT, V0)), code_blez(V0, 2));
+        break;
+    case gtsym:
+        return code_seq_add_to_end(code_seq_singleton(code_sub(V0, AT, V0)), code_bgtz(V0, 2));
+        break;
+    case geqsym:
+        return code_seq_add_to_end(code_seq_singleton(code_sub(V0, AT, V0)), code_bgez(V0, 2));
+        break;
+    default:
+        bail_with_error("Unknown token (%d) in gen_code_rel_op", rel_op.code);
+        break;
     }
-    ret = code_seq_concat(ret, do_op);
-    //Not exactly sure what these do, but the FLOAT example had them so I put them
-        //They may not be needed
-    ret = code_seq_add_to_end(ret, code_add(0, 0, AT)); 
-    ret = code_seq_add_to_end(ret, code_beq(0, 0, 1)); 
-    ret = code_seq_add_to_end(ret, code_addi(0, AT, 1)); 
-    ret = code_seq_concat(ret, code_push_reg_on_stack(AT));
-
-    return ret; 
+    return code_seq_empty();
 }
 
 code_seq gen_code_expr(expr_t exp)
@@ -402,11 +389,8 @@ code_seq gen_code_arith_op(token_t arith_op)
 
 code_seq gen_code_ident(ident_t id)
 {
-    assert(id.idu != NULL);
     code_seq ret = code_compute_fp(T9, id.idu->levelsOutward);
-    assert(id_use_get_attrs(id.idu) != NULL);
-    unsigned int offset_count= id_use_get_attrs(id.idu)->offset_count;
-    assert(offset_count <= USHRT_MAX);
+    unsigned int offset_count = id_use_get_attrs(id.idu)->offset_count;
     ret = code_seq_add_to_end(ret, code_lw(T9, V0, offset_count));
     return code_seq_concat(ret, code_push_reg_on_stack(V0));
 }
