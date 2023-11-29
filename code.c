@@ -1,4 +1,4 @@
-/* $Id: code.c,v 1.22 2023/11/28 03:17:45 leavens Exp leavens $ */
+/* $Id: code.c,v 1.23 2023/11/28 03:48:42 leavens Exp $ */
 #include <stdlib.h>
 #include <limits.h>
 #include <assert.h>
@@ -460,7 +460,7 @@ code_seq code_seq_concat(code_seq s1, code_seq s2)
 // from (i.e., lower than) the address contained in register rb,
 // and place it in register rt.
 // Modifies only register rt.
-code_seq code_load_static_link(reg_num_type rt, reg_num_type rb)
+code_seq code_load_static_link(reg_num_type rb, reg_num_type rt)
 {
     code_seq ret = code_seq_singleton(code_lw(rb, rt, STATIC_LINK_OFFSET));
     return ret;
@@ -578,9 +578,9 @@ code_seq code_restore_registers_from_AR()
 	ret = code_seq_add_to_end(ret, code_lw(FP, rn, idx--));
     }
     // deallocate the space on the stack, by restoring the SP
-    code_seq_add_to_end(ret, code_lw(FP, SP, -1));
+    ret = code_seq_add_to_end(ret, code_lw(FP, SP, -1));
     // restore the old FP
-    code_seq_add_to_end(ret, code_lw(FP, FP, -2));
+    ret = code_seq_add_to_end(ret, code_lw(FP, FP, -2));
     // the old static link is not restored
     return ret;
 }

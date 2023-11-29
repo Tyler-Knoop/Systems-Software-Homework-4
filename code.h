@@ -1,4 +1,4 @@
-/* $Id: code.h,v 1.18 2023/11/28 03:17:45 leavens Exp leavens $ */
+/* $Id: code.h,v 1.19 2023/11/28 11:50:16 leavens Exp leavens $ */
 #ifndef _CODE_H
 #define _CODE_H
 #include <stdbool.h>
@@ -210,7 +210,7 @@ extern code_seq code_seq_concat(code_seq s1, code_seq s2);
 // from (i.e., lower than) the address contained in register rb,
 // and place it in register rt.
 // Modifies only register rt.
-extern code_seq code_load_static_link(reg_num_type rt, reg_num_type rb);
+extern code_seq code_load_static_link(reg_num_type rb, reg_num_type rt);
 
 // Requires: reg != FP
 // Modifies only: register reg

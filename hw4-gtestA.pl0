@@ -1,4 +1,4 @@
-# $Id: hw4-gtestA.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp leavens $
+# $Id: hw4-gtestA.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp $
 const false = 0, true = 1;
 if false < true
 then write true    # writes 1
