@@ -1,4 +1,4 @@
-/* $Id: scope_check.h,v 1.5 2023/11/13 14:08:44 leavens Exp $ */
+/* $Id: scope_check.h,v 1.6 2023/11/28 11:50:16 leavens Exp leavens $ */
 #ifndef _SCOPE_CHECK_H
 #define _SCOPE_CHECK_H
 #include "ast.h"
@@ -58,9 +58,10 @@ extern proc_decl_t scope_check_procDecl(proc_decl_t pd);
 // Return the modified AST with id_use pointers
 extern stmt_t scope_check_stmt(stmt_t stmt);
 
-// check the statement to make sure that
+// Check the statement to make sure that
 // all idenfifiers referenced in it have been declared
-// (if not, then produce an error)
+// and that the name assigned to is a variable
+// (and if one of these does not hold, then produce an error).
 // Return the modified AST with id_use pointers
 extern assign_stmt_t scope_check_assignStmt(assign_stmt_t stmt);
 

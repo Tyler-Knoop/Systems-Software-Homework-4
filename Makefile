@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.50 2023/11/17 21:56:45 leavens Exp $
+# $Id: Makefile,v 1.51 2023/11/28 11:50:16 leavens Exp leavens $
 # Makefile for PL/0 compiler and code generation in COP 3402
 
 # Add .exe to the end of target to get that suffix in the rules
@@ -91,6 +91,7 @@ clean:
 	$(RM) $(COMPILER).exe $(COMPILER)
 	$(RM) *.stackdump core
 	$(RM) $(SUBMISSIONZIPFILE)
+	cd $(VM); make clean
 
 cleanall: clean
 	$(RM) *.myo *.myto *.bof *.asm *.tout
@@ -112,6 +113,7 @@ cleanall: clean
 # The .bof files are the compiled binary object files.
 .PRECIOUS: %.bof
 %.bof: %.$(SUF) $(COMPILER)
+	$(RM) $@; umask 022
 	./$(COMPILER) $<
 
 # The .asm files are disassembled binary object files.
@@ -156,6 +158,7 @@ $(SUBMISSIONZIPFILE): *.c *.h $(STUDENTTESTOUTPUTS)
 # The use of cat char-inputs.txt | allows read statments to not hang
 .PRECIOUS: %.out
 %.out: %.bof $(RUNVM)
+	$(RM) $@; umask 022
 	cat char-inputs.txt | $(RUNVM) $< >$@ 2>&1
 
 %.tout: %.bof $(RUNVM)

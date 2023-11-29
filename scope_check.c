@@ -1,4 +1,4 @@
-/* $Id: scope_check.c,v 1.15 2023/11/13 14:08:44 leavens Exp $ */
+/* $Id: scope_check.c,v 1.16 2023/11/28 11:50:16 leavens Exp leavens $ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -187,9 +187,10 @@ stmt_t scope_check_stmt(stmt_t stmt)
     return stmt;
 }
 
-// check the statement to make sure that
+// Check the statement to make sure that
 // all idenfifiers referenced in it have been declared
-// (if not, then produce an error)
+// and that the name assigned to is a variable
+// (and if one of these does not hold, then produce an error).
 // Return the modified AST with id_use pointers
 assign_stmt_t scope_check_assignStmt(assign_stmt_t stmt)
 {
@@ -198,6 +199,13 @@ assign_stmt_t scope_check_assignStmt(assign_stmt_t stmt)
 	= scope_check_ident_declared(*(stmt.file_loc),
 				     name);
     assert(stmt.idu != NULL);  // since would bail if not declared
+    id_kind k = id_use_get_attrs(stmt.idu)->kind;
+    if (k != variable_idk) {
+	bail_with_prog_error(*(stmt.file_loc),
+			     "Cannot assign to %s, as it is a %s!",
+			     stmt.name,
+			     id_attrs_id_kind_string(k));
+    }
     *(stmt.expr) = scope_check_expr(*(stmt.expr));
     return stmt;
 }

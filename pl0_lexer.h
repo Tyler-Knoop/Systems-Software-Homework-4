@@ -2,9 +2,9 @@
 #define yyHEADER_H 1
 #define yyIN_HEADER 1
 
-#line 5 "pl0_lexer.h"
+#line 6 "pl0_lexer.h"
 
-#line 7 "pl0_lexer.h"
+#line 8 "pl0_lexer.h"
 
 #define  YY_INT_ALIGNED short int
 
@@ -487,6 +487,6 @@ extern int yylex \
 #line 158 "pl0_lexer.l"
 
 
-#line 490 "pl0_lexer.h"
+#line 491 "pl0_lexer.h"
 #undef yyIN_HEADER
 #endif /* yyHEADER_H */
