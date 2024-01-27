@@ -1,3 +1,0 @@
-# $Id: hw4-gtest3.pl0,v 1.2 2023/11/15 07:00:00 leavens Exp $
-const first = 33;
-write first.      # writes 33
